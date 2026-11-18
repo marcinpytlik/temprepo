@@ -56,3 +56,25 @@ WHERE h.run_status IS NULL
 ORDER BY
     c.Path,
     j.name;
+
+    DECLARE @JobName NVARCHAR(128) =
+    'TU_WSTAW_NAZWE_JOBA_GUID';
+
+SELECT
+    j.name AS JobName,
+    sch.ScheduleID,
+    sch.Name AS ScheduleName,
+    rs.SubscriptionID,
+    s.Description,
+    c.Name AS ReportName,
+    c.Path AS ReportPath
+FROM msdb.dbo.sysjobs AS j
+LEFT JOIN ReportServer.dbo.Schedule AS sch
+    ON j.name = CONVERT(NVARCHAR(128), sch.ScheduleID)
+LEFT JOIN ReportServer.dbo.ReportSchedule AS rs
+    ON sch.ScheduleID = rs.ScheduleID
+LEFT JOIN ReportServer.dbo.Subscriptions AS s
+    ON rs.SubscriptionID = s.SubscriptionID
+LEFT JOIN ReportServer.dbo.Catalog AS c
+    ON s.Report_OID = c.ItemID
+WHERE j.name = @JobName;
