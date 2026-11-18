@@ -86,3 +86,21 @@ GROUP BY
     mf.size
 
 ORDER BY DatabaseName;
+-- autogroww
+SELECT
+    DB_NAME(database_id) AS DatabaseName,
+    name AS LogicalFileName,
+    CAST(size / 128.0 AS DECIMAL(18,2)) AS CurrentSizeMB,
+    CASE
+        WHEN is_percent_growth = 1
+            THEN CONCAT(growth, '%')
+        ELSE CONCAT(growth / 128, ' MB')
+    END AS AutoGrowth,
+    CASE
+        WHEN max_size = -1 THEN 'UNLIMITED'
+        ELSE CONCAT(max_size / 128, ' MB')
+    END AS MaxSize
+FROM sys.master_files
+WHERE type_desc = 'LOG'
+  AND DB_NAME(database_id) IN
+      ('msdb', 'ReportServerTempDB');
