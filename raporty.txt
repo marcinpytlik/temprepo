@@ -22,27 +22,37 @@ SELECT
     j.name AS JobName,
     j.enabled AS IsEnabled,
 
-    msdb.dbo.agent_datetime(
-        NULLIF(h.run_date, 0),
-        h.run_time
-    ) AS LastRunDate,
+    c.Name AS ReportName,
+    c.Path AS ReportPath,
 
-    h.run_status AS LastRunStatus,
+    s.Description AS SubscriptionDescription,
+    s.LastStatus AS SubscriptionLastStatus,
+    s.LastRunTime AS SubscriptionLastRunTime,
 
     CASE
-        WHEN h.run_status IS NULL THEN 'NO HISTORY'
-        WHEN h.run_status = 0 THEN 'FAILED'
-        WHEN h.run_status = 1 THEN 'SUCCEEDED'
-        WHEN h.run_status = 2 THEN 'RETRY'
-        WHEN h.run_status = 3 THEN 'CANCELED'
-        WHEN h.run_status = 4 THEN 'IN PROGRESS'
-    END AS LastRunDescription
+        WHEN h.run_date > 0
+        THEN msdb.dbo.agent_datetime(h.run_date, h.run_time)
+    END AS JobLastRunDate,
+
+    h.run_status AS JobLastRunStatus
 
 FROM dbo.sysjobs AS j
+
 LEFT JOIN LastJobRun AS h
     ON h.job_id = j.job_id
    AND h.rn = 1
 
+LEFT JOIN ReportServer.dbo.ReportSchedule AS rs
+    ON j.name = CONVERT(NVARCHAR(128), rs.ScheduleID)
+
+LEFT JOIN ReportServer.dbo.Subscriptions AS s
+    ON rs.SubscriptionID = s.SubscriptionID
+
+LEFT JOIN ReportServer.dbo.Catalog AS c
+    ON s.Report_OID = c.ItemID
+
 WHERE h.run_status IS NULL
 
-ORDER BY j.name;
+ORDER BY
+    c.Path,
+    j.name;
