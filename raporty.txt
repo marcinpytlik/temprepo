@@ -78,3 +78,34 @@ LEFT JOIN ReportServer.dbo.Subscriptions AS s
 LEFT JOIN ReportServer.dbo.Catalog AS c
     ON s.Report_OID = c.ItemID
 WHERE j.name = @JobName;
+
+DECLARE @JobName NVARCHAR(128) =
+    'TU_WSTAW_JOBNAME_GUID';
+
+SELECT
+    sch.ScheduleID,
+    sch.Name AS ScheduleName,
+    sch.EventType,
+    sch.EventData,
+    sch.Type AS ScheduleType,
+    sch.State AS ScheduleState,
+    sch.LastRunTime,
+    sch.NextRunTime,
+
+    c.ItemID AS MatchingReportID,
+    c.Name AS MatchingReportName,
+    c.Path AS MatchingReportPath,
+
+    sub.SubscriptionID AS MatchingSubscriptionID,
+    sub.Description AS MatchingSubscriptionDescription
+
+FROM ReportServer.dbo.Schedule AS sch
+
+LEFT JOIN ReportServer.dbo.Catalog AS c
+    ON c.ItemID = TRY_CONVERT(UNIQUEIDENTIFIER, sch.Name)
+
+LEFT JOIN ReportServer.dbo.Subscriptions AS sub
+    ON sub.SubscriptionID = TRY_CONVERT(UNIQUEIDENTIFIER, sch.Name)
+
+WHERE sch.ScheduleID =
+    TRY_CONVERT(UNIQUEIDENTIFIER, @JobName);
