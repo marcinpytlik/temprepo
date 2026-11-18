@@ -1,0 +1,48 @@
+USE msdb;
+GO
+
+;WITH LastJobRun AS
+(
+    SELECT
+        job_id,
+        instance_id,
+        run_date,
+        run_time,
+        run_status,
+        ROW_NUMBER() OVER
+        (
+            PARTITION BY job_id
+            ORDER BY instance_id DESC
+        ) AS rn
+    FROM dbo.sysjobhistory
+    WHERE step_id = 0
+)
+SELECT
+    j.job_id AS JobID,
+    j.name AS JobName,
+    j.enabled AS IsEnabled,
+
+    msdb.dbo.agent_datetime(
+        NULLIF(h.run_date, 0),
+        h.run_time
+    ) AS LastRunDate,
+
+    h.run_status AS LastRunStatus,
+
+    CASE
+        WHEN h.run_status IS NULL THEN 'NO HISTORY'
+        WHEN h.run_status = 0 THEN 'FAILED'
+        WHEN h.run_status = 1 THEN 'SUCCEEDED'
+        WHEN h.run_status = 2 THEN 'RETRY'
+        WHEN h.run_status = 3 THEN 'CANCELED'
+        WHEN h.run_status = 4 THEN 'IN PROGRESS'
+    END AS LastRunDescription
+
+FROM dbo.sysjobs AS j
+LEFT JOIN LastJobRun AS h
+    ON h.job_id = j.job_id
+   AND h.rn = 1
+
+WHERE h.run_status IS NULL
+
+ORDER BY j.name;
