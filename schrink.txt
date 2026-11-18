@@ -1,6 +1,9 @@
 USE master;
 GO
 
+USE master;
+GO
+
 SELECT
     DB_NAME(mf.database_id) AS DatabaseName,
     mf.name AS LogicalFileName,
@@ -9,25 +12,25 @@ SELECT
     CAST(mf.size / 128.0 AS DECIMAL(18,2))
         AS CurrentSizeMB,
 
-    CAST(ls.total_log_size_in_bytes / 1048576.0
-        AS DECIMAL(18,2)) AS TotalLogSizeMB,
+    CAST(ls.total_log_size_mb AS DECIMAL(18,2))
+        AS TotalLogSizeMB,
 
-    CAST(ls.used_log_space_in_bytes / 1048576.0
-        AS DECIMAL(18,2)) AS UsedLogMB,
-
-    CAST(ls.used_log_space_in_percent
-        AS DECIMAL(10,2)) AS UsedLogPct,
+    CAST(ls.active_log_size_mb AS DECIMAL(18,2))
+        AS ActiveLogSizeMB,
 
     CAST(
-        (ls.total_log_size_in_bytes -
-         ls.used_log_space_in_bytes) / 1048576.0
-        AS DECIMAL(18,2)) AS FreeLogMB,
+        ls.total_log_size_mb - ls.active_log_size_mb
+        AS DECIMAL(18,2)
+    ) AS InactiveLogSizeMB,
 
-    CAST(100.0 - ls.used_log_space_in_percent
-        AS DECIMAL(10,2)) AS FreeLogPct,
+    CAST(
+        100.0 * ls.active_log_size_mb /
+        NULLIF(ls.total_log_size_mb, 0)
+        AS DECIMAL(10,2)
+    ) AS ActiveLogPct,
 
-    ls.active_vlf_count AS ActiveVLFCount,
     ls.total_vlf_count AS TotalVLFCount,
+    ls.active_vlf_count AS ActiveVLFCount,
 
     ls.log_truncation_holdup_reason AS LogReuseWait
 
