@@ -1,0 +1,77 @@
+krok1
+cd C:\Users\blad\Documents\GitHub\SQLManiak\tools\SQLManiakDailyHealthCheck\v1.7
+
+Import-Module SqlServer
+Add-Type -AssemblyName Microsoft.Data.SqlClient
+
+# Produkcyjna instancja źródłowa
+$sourceServer = 'HAABASEL5'
+
+# Wprowadź rzeczywisty adres centralnego Repository
+$repositoryServer = Read-Host 'Adres centralnego SQL Server Repository'
+
+# Oddzielne poświadczenia
+$sourceCredential = Get-Credential `
+    -UserName 'dhc_source_collector' `
+    -Message 'HAABASEL5 - konto monitorujące'
+
+$repoCredential = Get-Credential `
+    -UserName 'dhc_repository_collector' `
+    -Message 'Centralne SQLManiakHealthHistory'
+
+# Bezpieczna konstrukcja connection stringa
+$repoBuilder = [Microsoft.Data.SqlClient.SqlConnectionStringBuilder]::new()
+
+$repoBuilder['Data Source'] = $repositoryServer
+$repoBuilder['Initial Catalog'] = 'SQLManiakHealthHistory'
+$repoBuilder['User ID'] = $repoCredential.UserName
+$repoBuilder['Password'] = $repoCredential.GetNetworkCredential().Password
+$repoBuilder['Encrypt'] = $true
+$repoBuilder['Trust Server Certificate'] = $true
+$repoBuilder['Connect Timeout'] = 5
+
+$repoConnectionString = $repoBuilder.ConnectionString
+krok2
+# Źródło
+Invoke-Sqlcmd `
+    -ServerInstance $sourceServer `
+    -Database master `
+    -Credential $sourceCredential `
+    -TrustServerCertificate `
+    -Query "
+        SELECT
+            @@SERVERNAME AS ServerName,
+            ORIGINAL_LOGIN() AS LoginName,
+            DB_NAME() AS DatabaseName;
+    "
+
+# Repository
+$conn = [Microsoft.Data.SqlClient.SqlConnection]::new(
+    $repoConnectionString
+)
+
+try {
+    $conn.Open()
+    $cmd = $conn.CreateCommand()
+    $cmd.CommandText = @'
+SELECT
+    @@SERVERNAME AS ServerName,
+    ORIGINAL_LOGIN() AS LoginName,
+    DB_NAME() AS DatabaseName;
+'@
+
+    $reader = $cmd.ExecuteReader()
+    while ($reader.Read()) {
+        [pscustomobject]@{
+            ServerName   = $reader['ServerName']
+            LoginName    = $reader['LoginName']
+            DatabaseName = $reader['DatabaseName']
+        }
+    }
+
+    $reader.Close()
+    $cmd.Dispose()
+}
+finally {
+    $conn.Dispose()
+}
