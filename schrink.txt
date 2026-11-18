@@ -1,0 +1,85 @@
+USE master;
+GO
+
+SELECT
+    DB_NAME(mf.database_id) AS DatabaseName,
+    mf.name AS LogicalFileName,
+    mf.physical_name AS PhysicalFileName,
+
+    CAST(mf.size / 128.0 AS DECIMAL(18,2))
+        AS CurrentSizeMB,
+
+    CAST(ls.total_log_size_in_bytes / 1048576.0
+        AS DECIMAL(18,2)) AS TotalLogSizeMB,
+
+    CAST(ls.used_log_space_in_bytes / 1048576.0
+        AS DECIMAL(18,2)) AS UsedLogMB,
+
+    CAST(ls.used_log_space_in_percent
+        AS DECIMAL(10,2)) AS UsedLogPct,
+
+    CAST(
+        (ls.total_log_size_in_bytes -
+         ls.used_log_space_in_bytes) / 1048576.0
+        AS DECIMAL(18,2)) AS FreeLogMB,
+
+    CAST(100.0 - ls.used_log_space_in_percent
+        AS DECIMAL(10,2)) AS FreeLogPct,
+
+    ls.active_vlf_count AS ActiveVLFCount,
+    ls.total_vlf_count AS TotalVLFCount,
+
+    ls.log_truncation_holdup_reason AS LogReuseWait
+
+FROM sys.master_files AS mf
+CROSS APPLY sys.dm_db_log_stats(mf.database_id) AS ls
+
+WHERE mf.type_desc = 'LOG'
+  AND DB_NAME(mf.database_id) IN
+      ('msdb', 'ReportServerTempDB')
+
+ORDER BY DatabaseName;
+USE master;
+GO
+
+SELECT
+    DB_NAME(mf.database_id) AS DatabaseName,
+    mf.name AS LogicalFileName,
+
+    COUNT(*) AS TotalVLF,
+
+    SUM(CASE WHEN vlf.vlf_active = 1
+             THEN 1 ELSE 0 END) AS ActiveVLF,
+
+    CAST(MAX(
+        CASE WHEN vlf.vlf_active = 1
+             THEN vlf.vlf_begin_offset +
+                  vlf.vlf_size_mb * 1048576.0
+        END) / 1048576.0 AS DECIMAL(18,2))
+        AS LastActiveVLFEndMB,
+
+    CAST(mf.size / 128.0 AS DECIMAL(18,2))
+        AS CurrentFileSizeMB,
+
+    CAST(
+        mf.size / 128.0 -
+        MAX(CASE WHEN vlf.vlf_active = 1
+                 THEN vlf.vlf_begin_offset / 1048576.0
+                      + vlf.vlf_size_mb
+            END)
+        AS DECIMAL(18,2))
+        AS PotentialShrinkMB
+
+FROM sys.master_files AS mf
+CROSS APPLY sys.dm_db_log_info(mf.database_id) AS vlf
+
+WHERE mf.type_desc = 'LOG'
+  AND DB_NAME(mf.database_id) IN
+      ('msdb', 'ReportServerTempDB')
+
+GROUP BY
+    mf.database_id,
+    mf.name,
+    mf.size
+
+ORDER BY DatabaseName;
