@@ -1,0 +1,17 @@
+USE DBACentralRepositoryv4;
+GO
+
+SELECT
+    i.ServerInstance,
+    h.HostName,
+    ih.IsCurrentOwner,
+    ih.LastObservedUtc
+FROM inventory.InstanceHost ih
+JOIN inventory.Instance i
+    ON i.InstanceId = ih.InstanceId
+JOIN inventory.Host h
+    ON h.HostId = ih.HostId;
+
+SELECT *
+FROM report.vFciOwnerHistory
+ORDER BY ScanRunId DESC;
