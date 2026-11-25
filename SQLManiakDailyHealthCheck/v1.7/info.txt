@@ -1,0 +1,8 @@
+mkdir SQLManiakDailyHealthCheck
+mkdir SQLManiakDailyHealthCheck\01_Installation
+mkdir SQLManiakDailyHealthCheck\02_Repository
+mkdir SQLManiakDailyHealthCheck\03_Collector
+mkdir SQLManiakDailyHealthCheck\04_Configuration
+mkdir SQLManiakDailyHealthCheck\05_Validation
+mkdir SQLManiakDailyHealthCheck\06_Reporting
+mkdir SQLManiakDailyHealthCheck\07_Documentation
