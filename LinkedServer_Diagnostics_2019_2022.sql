@@ -172,3 +172,65 @@ GO
  Brak uprawnien do DMV/ERRORLOG: zapisz komunikat, nie nadawaj uprawnien na potrzeby testu.
  Skrypt nie ustala samodzielnie przyczyny; wyniki wymagaja korelacji.
  ============================================================ */
+--diagnostyka na sql 2019
+
+SELECT
+    @@SERVERNAME AS ServerName,
+    ORIGINAL_LOGIN() AS OriginalLogin,
+    SUSER_SNAME() AS CurrentLogin,
+    auth_scheme,
+    net_transport,
+    client_net_address,
+    local_net_address,
+    local_tcp_port
+FROM sys.dm_exec_connections
+WHERE session_id = @@SPID;
+
+SELECT
+    @@SERVERNAME AS ServerName,
+    servicename,
+    service_account,
+    status_desc,
+    startup_type_desc,
+    is_clustered,
+    cluster_nodename
+FROM sys.dm_server_services;
+
+SELECT
+    @@SERVERNAME AS ServerName,
+    s.name AS LinkedServer,
+    s.provider,
+    s.data_source,
+    COALESCE(p.name, '<ALL LOGINS>') AS LocalLogin,
+    l.uses_self_credential,
+    l.remote_name
+FROM sys.servers AS s
+INNER JOIN sys.linked_logins AS l
+    ON s.server_id = l.server_id
+LEFT JOIN sys.server_principals AS p
+    ON l.local_principal_id = p.principal_id
+WHERE s.is_linked = 1;
+
+SELECT
+    @@SERVERNAME AS ServerName,
+    ORIGINAL_LOGIN() AS OriginalLogin,
+    auth_scheme,
+    net_transport,
+    local_tcp_port
+FROM sys.dm_exec_connections
+WHERE session_id = @@SPID;
+
+SELECT
+    s.name AS LinkedServer,
+    s.provider,
+    s.data_source,
+    l.local_principal_id,
+    p.name AS LocalLogin,
+    l.uses_self_credential,
+    l.remote_name
+FROM sys.servers AS s
+LEFT JOIN sys.linked_logins AS l
+    ON s.server_id = l.server_id
+LEFT JOIN sys.server_principals AS p
+    ON p.principal_id = l.local_principal_id
+WHERE s.is_linked = 1;
