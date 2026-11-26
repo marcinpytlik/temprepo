@@ -6,3 +6,24 @@ mkdir SQLManiakDailyHealthCheck\04_Configuration
 mkdir SQLManiakDailyHealthCheck\05_Validation
 mkdir SQLManiakDailyHealthCheck\06_Reporting
 mkdir SQLManiakDailyHealthCheck\07_Documentation
+
+1. Siedem kluczowych wskaźników
+Wskaźnik	Co monitorujemy	Priorytet
+Wait Statistics	Na co czeka SQL Server	Krytyczny
+CPU Utilization	Obciążenie procesora przez SQL Server	Wysoki
+I/O Latency	Opóźnienia odczytu i zapisu DATA, LOG i TempDB	Krytyczny
+Blocking & Deadlocks	Blokowanie sesji i zakleszczenia	Krytyczny
+Memory Pressure	Presję na pamięć	Wysoki
+Batch Requests/sec	Intensywność obciążenia instancji	Wysoki
+Storage Capacity	Wolne miejsce, wzrost plików i wykorzystanie logów	Krytyczny
+
+Celowo nie umieszczam tutaj samego Page Life Expectancy ani Buffer Cache Hit Ratio jako niezależnych wskaźników. W nowoczesnych środowiskach SQL Server ich interpretacja bez dodatkowego kontekstu może być myląca.
+2. Co dokładnie zbierać?
+Obszar	Konkretne liczniki i metryki	Źródło danych
+Wait Statistics	Wait ms/sec, Signal Wait %, Top 5 Wait Types	sys.dm_os_wait_stats
+CPU	SQL CPU %, OS CPU %, Runnable Tasks	sys.dm_os_schedulers, PerfMon
+I/O	Read/Write Latency, IOPS, MB/s	sys.dm_io_virtual_file_stats
+Blocking	Blocked Sessions, Max Blocking Time, Deadlocks	sys.dm_exec_requests, Extended Events
+Memory	Memory Grants Pending, Available RAM, PLE per NUMA	DMV, PerfMon
+Workload	Batch Requests/sec, SQL Compilations/sec	sys.dm_os_performance_counters
+Storage	Disk Free GB, Data Free GB, Log Used %, TempDB Used GB	sys.dm_os_volume_stats, DMV
